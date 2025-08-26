@@ -1,0 +1,4 @@
+garage_id,name,lat,lon,hourly_rate,capacity
+g1,SLU Garage A,47.6205,-122.3355,5.0,600
+g2,Downtown Garage B,47.6095,-122.3350,7.0,900
+g3,SODO Garage C,47.5900,-122.3330,4.0,500

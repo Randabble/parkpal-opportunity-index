@@ -1,0 +1,22 @@
+name: parkpal
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pandas>=2.2
+  - numpy>=1.26
+  - geopandas>=0.14
+  - shapely>=2.0
+  - pyproj>=3.6
+  - folium>=0.16
+  - matplotlib>=3.8
+  - statsmodels>=0.14
+  - scikit-learn>=1.4
+  - contextily>=1.6
+  - jupyterlab
+  - pytest
+  - pip:
+      - keplergl==0.3.2
+      - osmnx>=1.9

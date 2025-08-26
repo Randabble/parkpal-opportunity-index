@@ -1,0 +1,5 @@
+venue_id,name,type,lat,lon,attendance,employees
+v1,Climate Pledge Arena,arena,47.6221,-122.3549,15000,0
+v2,Lumen Field,stadium,47.5952,-122.3316,68000,0
+v3,T-Mobile Park,stadium,47.5914,-122.3325,47000,0
+v4,Amazon Spheres,office_cluster,47.6156,-122.3388,3000,25000

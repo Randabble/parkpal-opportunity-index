@@ -1,0 +1,1015 @@
+Repo tree
+parkpal-opportunity-index/
+├─ README.md
+├─ LICENSE
+├─ environment.yml
+├─ requirements.txt
+├─ Makefile
+├─ src/
+│  ├─ scoring.py
+│  ├─ features.py
+│  ├─ forecast.py
+│  └─ viz.py
+├─ notebooks/
+│  ├─ 01_data_prep.ipynb
+│  ├─ 02_geospatial_metrics.ipynb
+│  ├─ 03_time_series.ipynb
+│  └─ 04_opportunity_index.ipynb
+├─ data/
+│  ├─ boundaries.geojson
+│  ├─ parcels_sample.geojson
+│  ├─ venues.csv
+│  ├─ parking_prices.csv
+│  └─ traffic.csv
+├─ maps/            # output folder for Folium map
+├─ outputs/         # output CSVs
+└─ tests/
+   └─ test_scoring.py
+
+README.md
+# ParkPal Opportunity Index (Seattle MVP)
+
+**Goal:** rank micro-areas in Seattle where a peer-to-peer driveway parking app will succeed first.
+
+**Inputs (synthetic for MVP):**
+- Demand: traffic index by area and hour, event venues with attendance, simple employment density proxy
+- Supply: sample residential parcels with driveway area
+- Access: distance to nearby points of interest, density within 600 m
+- Economic: local garage price benchmarks
+
+**Outputs:**
+1) A ranked table of areas with an **Opportunity** score  
+2) An interactive Folium map (`maps/opportunities.html`)  
+3) A tiny time series demo that forecasts short-term demand and shows how to fold it into the score
+
+---
+
+## Why this fits transportation systems and ITS
+This MVP mirrors how transportation analytics blends network demand, land use, and operational context. We build a multi-criteria index for **site selection** (like facility location in OR), add a **demand forecast** with SARIMA, and visualize results as usable decision support. This is aligned with work in urban traffic operations, mobile sensing, and intelligent transportation systems, in the spirit of research themes common to Dr. Xuegang “Jeff” Ban’s group.
+
+---
+
+## Quickstart
+
+### Option A: Conda (recommended for GeoPandas)
+```bash
+conda env create -f environment.yml
+conda activate parkpal
+python -m pip install -r requirements.txt  # pins light extras
+pytest
+jupyter lab
+
+Option B: pip only (works on many setups)
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m pip install -r requirements.txt
+pytest
+jupyter lab
+
+
+Open and run notebooks in order:
+
+01_data_prep.ipynb – load synthetic data, set CRS, spatial joins
+
+02_geospatial_metrics.ipynb – build features per area
+
+03_time_series.ipynb – build hourly demand, fit SARIMA, make a 1-week forecast
+
+04_opportunity_index.ipynb – normalize, weight, score, rank, export CSV and map
+
+Artifacts:
+
+maps/opportunities.html
+
+outputs/top_areas.csv
+
+Method overview
+
+Per-area features
+
+Demand
+
+traffic_index: mean and peak from hourly series
+
+event_intensity: sum over venues with distance decay
+
+employment_density: simple proxy from boundaries attributes
+
+violations_rate: placeholder field for future Seattle Open Data
+
+Supply
+
+private_supply: sum of parcel driveway_area_m2 within area
+
+public_supply: garages within 600 m with capacity, for demand gap use
+
+Access
+
+poi_density_600m: count of venues within 600 m
+
+avg_walk_distance_to_poi_m: centroid to nearest venue
+
+Economic
+
+garage_rate_median: median hourly rate near the area
+
+Composites (min-max normalized to [0,1])
+
+DemandScore = f(traffic_index_mean, event_intensity, employment_density, -public_supply)
+
+SupplyScore = f(private_supply)
+
+AccessScore = f(poi_density_600m, -avg_walk_distance_to_poi_m)
+
+EconomicScore = f(garage_rate_median)
+
+Opportunity (baseline weights)
+
+Opportunity = 0.40*DemandScore + 0.30*SupplyScore + 0.20*AccessScore + 0.10*EconomicScore
+
+
+Weights are configurable in src/scoring.py through function args. A preset shifts weight toward office commute vs event demand.
+
+Time series
+
+Small synthetic hourly demand series for a few areas with weekday peaks and event spikes
+
+SARIMA via statsmodels
+
+Optionally blend near-term forecast peak into DemandScore
+
+Design choices
+
+CRS: read in WGS84, project to a local projected CRS for distances (UTM zone 10N, EPSG:26910). Distances and buffers are in meters and rely on this projection.
+
+Synthetic data: tiny files so everything runs offline in minutes. Functions are structured to swap in real sources later (Seattle Open Data, LEHD, GTFS, events APIs).
+
+Clean structure: most logic in src/. Notebooks stay short and readable.
+
+How to swap in real data later
+
+Boundaries: neighborhood or custom grid from Seattle GIS → replace data/boundaries.geojson
+
+Parcels: King County Assessor parcels with driveway proxy features → replace data/parcels_sample.geojson
+
+Events: Ticketmaster/Eventbrite APIs or venue calendars → replace data/venues.csv
+
+Traffic: INRIX or TomTom or Google traffic aggregates → replace data/traffic.csv
+
+Prices: Parkopedia or SpotHero samples → replace data/parking_prices.csv
+
+Professor-ready description (you can paste this in an email)
+
+We developed a small, reproducible MVP that scores Seattle micro-areas for a peer-to-peer driveway parking pilot. The index blends demand, supply, access, and economic signals using standard GIS methods: spatial joins, distance decay, and buffers in a projected CRS. A light SARIMA model produces a short-term demand forecast that can feed the score. Everything runs offline on synthetic data, but each step is designed to swap in real city datasets. The result is a transparent, reproducible site selection tool that reflects multi-criteria decision analysis and demand forecasting common in transportation systems and ITS.
+
+License
+
+MIT. See LICENSE.
+
+
+---
+
+### `LICENSE` (MIT)
+
+```text
+MIT License
+
+Copyright (c) 2025 ParkPal
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+environment.yml (Conda)
+name: parkpal
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pandas>=2.2
+  - numpy>=1.26
+  - geopandas>=0.14
+  - shapely>=2.0
+  - pyproj>=3.6
+  - folium>=0.16
+  - matplotlib>=3.8
+  - statsmodels>=0.14
+  - scikit-learn>=1.4
+  - contextily>=1.6
+  - jupyterlab
+  - pytest
+  - pip:
+      - keplergl==0.3.2
+      - osmnx>=1.9
+
+requirements.txt (pip fallback)
+pandas>=2.2
+numpy>=1.26
+geopandas>=0.14
+shapely>=2.0
+pyproj>=3.6
+folium>=0.16
+matplotlib>=3.8
+statsmodels>=0.14
+scikit-learn>=1.4
+contextily>=1.6
+keplergl==0.3.2
+osmnx>=1.9
+pytest>=8.0
+jupyterlab>=4.0
+
+Makefile (optional)
+.PHONY: env run test map
+
+env:
+	conda env create -f environment.yml || true
+	conda activate parkpal
+
+test:
+	pytest -q
+
+run:
+	python -c "print('Open notebooks and run in order: 01..04')"
+
+map:
+	python -c "from src.viz import build_map_cli; build_map_cli()"
+
+src/ modules
+src/scoring.py
+from __future__ import annotations
+import pandas as pd
+import numpy as np
+from typing import Dict, List
+
+def normalize_series(s: pd.Series) -> pd.Series:
+    """
+    Min-max normalize to [0,1]. If constant, return 0.5.
+    """
+    s = s.astype(float)
+    minv, maxv = s.min(), s.max()
+    if np.isclose(maxv, minv):
+        return pd.Series(0.5, index=s.index)
+    return (s - minv) / (maxv - minv)
+
+def weighted_sum(df: pd.DataFrame, cols: List[str], weights: Dict[str, float]) -> pd.Series:
+    """
+    Compute sum_i w_i * df[col_i]. Missing cols get weight 0.
+    Assumes columns are already normalized as needed.
+    """
+    total = 0.0
+    for c in cols:
+        w = weights.get(c, 0.0)
+        if c in df:
+            total = total + w * df[c].astype(float)
+    return pd.Series(total, index=df.index)
+
+def compute_composites(features: pd.DataFrame) -> pd.DataFrame:
+    """
+    Build normalized component scores from raw feature columns.
+    Expects the following raw columns to exist (some are placeholders):
+      - traffic_index_mean, event_intensity, employment_density,
+        public_supply, private_supply, poi_density_600m,
+        avg_walk_distance_to_poi_m, garage_rate_median
+    """
+    f = features.copy()
+
+    # DemandScore: high traffic, high events, high employment, low public supply
+    f["traffic_n"] = normalize_series(f["traffic_index_mean"])
+    f["events_n"] = normalize_series(f["event_intensity"])
+    f["jobs_n"] = normalize_series(f["employment_density"])
+    f["public_supply_n"] = normalize_series(f["public_supply"])  # good is low
+    f["DemandScore"] = normalize_series(
+        0.35 * f["traffic_n"] +
+        0.35 * f["events_n"] +
+        0.20 * f["jobs_n"] +
+        0.10 * (1 - f["public_supply_n"])
+    )
+
+    # SupplyScore: private supply only
+    f["private_supply_n"] = normalize_series(f["private_supply"])
+    f["SupplyScore"] = f["private_supply_n"]
+
+    # AccessScore: more POIs nearby and shorter walk distance
+    f["poi_n"] = normalize_series(f["poi_density_600m"])
+    f["walk_n"] = normalize_series(f["avg_walk_distance_to_poi_m"])
+    f["AccessScore"] = normalize_series(0.6 * f["poi_n"] + 0.4 * (1 - f["walk_n"]))
+
+    # EconomicScore: higher nearby garage rates → better price headroom
+    f["garage_rate_n"] = normalize_series(f["garage_rate_median"])
+    f["EconomicScore"] = f["garage_rate_n"]
+
+    return f
+
+def compute_opportunity(
+    features: pd.DataFrame,
+    weights: Dict[str, float] | None = None
+) -> pd.DataFrame:
+    """
+    Combine component scores into an Opportunity score.
+    Default weights:
+      Demand 0.40, Supply 0.30, Access 0.20, Economic 0.10
+    """
+    if weights is None:
+        weights = {"DemandScore": 0.40, "SupplyScore": 0.30, "AccessScore": 0.20, "EconomicScore": 0.10}
+
+    f = features.copy()
+    for key in ["DemandScore", "SupplyScore", "AccessScore", "EconomicScore"]:
+        if key not in f:
+            raise KeyError(f"Missing component score: {key}")
+
+    f["Opportunity"] = (
+        weights.get("DemandScore", 0) * f["DemandScore"] +
+        weights.get("SupplyScore", 0) * f["SupplyScore"] +
+        weights.get("AccessScore", 0) * f["AccessScore"] +
+        weights.get("EconomicScore", 0) * f["EconomicScore"]
+    )
+    return f
+
+def rank_areas(scored: pd.DataFrame, score_col: str = "Opportunity", n: int = 10) -> pd.DataFrame:
+    """
+    Return top-n areas sorted by score descending.
+    """
+    cols = [c for c in scored.columns if c not in []]
+    out = scored.sort_values(score_col, ascending=False).head(n).copy()
+    return out
+
+def preset_weights(kind: str = "balanced") -> Dict[str, float]:
+    """
+    Presets:
+      - "balanced": baseline weights
+      - "office_commute": emphasize jobs and traffic, reduce events and price
+    """
+    if kind == "balanced":
+        return {"DemandScore": 0.40, "SupplyScore": 0.30, "AccessScore": 0.20, "EconomicScore": 0.10}
+    if kind == "office_commute":
+        return {"DemandScore": 0.50, "SupplyScore": 0.25, "AccessScore": 0.20, "EconomicScore": 0.05}
+    return {"DemandScore": 0.40, "SupplyScore": 0.30, "AccessScore": 0.20, "EconomicScore": 0.10}
+
+def suggest_price_stub(
+    base_rate: float,
+    event_attendance: float | None,
+    garage_price: float | None,
+    alpha: float = 0.25,
+    beta: float = 0.50
+) -> float:
+    """
+    Placeholder for a pricing recommender.
+    SuggestedPrice = base_rate + alpha*(event_attendance/1000) + beta*max(garage_price - base_rate, 0)
+    """
+    ea = 0.0 if event_attendance is None else event_attendance
+    gp = base_rate if garage_price is None else garage_price
+    return float(base_rate + alpha * (ea / 1000.0) + beta * max(gp - base_rate, 0))
+
+src/features.py
+from __future__ import annotations
+import pandas as pd
+import geopandas as gpd
+import numpy as np
+from shapely.geometry import Point
+from shapely.ops import nearest_points
+
+EPSG_LOCAL = 26910  # UTM zone 10N, meters for Seattle region
+
+def to_local(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    if gdf.crs is None:
+        gdf = gdf.set_crs(4326)
+    return gdf.to_crs(EPSG_LOCAL)
+
+def event_intensity_by_area(areas: gpd.GeoDataFrame, venues: pd.DataFrame, decay_m: float = 300.0) -> pd.Series:
+    """
+    Sum attendance-weighted distance decay from all venues to each area centroid.
+    intensity = sum(attendance * exp(-distance/decay_m))
+    """
+    vg = gpd.GeoDataFrame(venues.copy(), geometry=gpd.points_from_xy(venues["lon"], venues["lat"]), crs=4326)
+    areas_l = to_local(areas)
+    vg_l = to_local(vg)
+    centroids = areas_l.centroid
+
+    intensities = []
+    for c in centroids:
+        dists = vg_l.distance(c)  # meters in local CRS
+        att = vg_l.get("attendance", pd.Series(np.ones(len(vg_l))))
+        val = np.sum(att.values * np.exp(-dists.values / decay_m))
+        intensities.append(val)
+    return pd.Series(intensities, index=areas.index, name="event_intensity")
+
+def private_supply_by_area(areas: gpd.GeoDataFrame, parcels: gpd.GeoDataFrame) -> pd.Series:
+    """
+    Sum driveway_area_m2 of parcels within each area polygon.
+    """
+    areas_l = to_local(areas)
+    parcels_l = to_local(parcels)
+    joined = gpd.sjoin(parcels_l, areas_l, how="inner", predicate="intersects")
+    grp = joined.groupby(areas_l.index.name or "index_right")["driveway_area_m2"].sum()
+    # Ensure full index
+    supply = pd.Series(0.0, index=areas.index)
+    supply.loc[grp.index] = grp.values
+    supply.name = "private_supply"
+    return supply
+
+def public_supply_by_area(areas: gpd.GeoDataFrame, garages_df: pd.DataFrame, radius_m: float = 600.0) -> pd.Series:
+    """
+    Sum garage capacity within radius of the area centroid.
+    """
+    garages = gpd.GeoDataFrame(garages_df.copy(), geometry=gpd.points_from_xy(garages_df["lon"], garages_df["lat"]), crs=4326)
+    garages_l = to_local(garages)
+    areas_l = to_local(areas)
+    centroids = areas_l.centroid
+
+    caps = []
+    for c in centroids:
+        mask = garages_l.distance(c) <= radius_m
+        cap_sum = garages_l.loc[mask, "capacity"].sum() if "capacity" in garages_l else 0.0
+        caps.append(float(cap_sum))
+    return pd.Series(caps, index=areas.index, name="public_supply")
+
+def access_metrics(areas: gpd.GeoDataFrame, venues_df: pd.DataFrame, radius_m: float = 600.0) -> pd.DataFrame:
+    """
+    Compute:
+      - poi_density_600m: venues within 600 m of area centroid
+      - avg_walk_distance_to_poi_m: distance to nearest venue
+    """
+    venues = gpd.GeoDataFrame(venues_df.copy(), geometry=gpd.points_from_xy(venues_df["lon"], venues_df["lat"]), crs=4326)
+    venues_l = to_local(venues)
+    areas_l = to_local(areas)
+    centroids = areas_l.centroid
+
+    counts, nearest_dist = [], []
+    for c in centroids:
+        d = venues_l.distance(c)
+        counts.append(int((d <= radius_m).sum()))
+        nearest_dist.append(float(d.min()) if len(d) else 0.0)
+
+    return pd.DataFrame({
+        "poi_density_600m": counts,
+        "avg_walk_distance_to_poi_m": nearest_dist
+    }, index=areas.index)
+
+def traffic_aggregate(traffic_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    traffic_df: columns [area_id, hour, traffic_index]
+    Returns area-level mean and peak.
+    """
+    agg = (traffic_df
+           .groupby("area_id")["traffic_index"]
+           .agg(traffic_index_mean="mean", traffic_index_peak="max"))
+    return agg.reset_index()
+
+def assemble_features(
+    areas: gpd.GeoDataFrame,
+    venues_df: pd.DataFrame,
+    parcels: gpd.GeoDataFrame,
+    garages_df: pd.DataFrame,
+    traffic_df: pd.DataFrame
+) -> pd.DataFrame:
+    """
+    Build a feature table keyed by area_id. Requires 'area_id' in areas.
+    Also expects 'employment_density' already present in areas (synthetic proxy for MVP).
+    """
+    if "area_id" not in areas.columns:
+        raise KeyError("areas must include 'area_id' column")
+
+    # Base frame
+    base = pd.DataFrame({"area_id": areas["area_id"].values}).set_index(areas.index)
+
+    # Demand pieces
+    base["event_intensity"] = event_intensity_by_area(areas, venues_df)
+    traf = traffic_aggregate(traffic_df)
+    base = base.merge(traf.set_index(areas["area_id"].values), left_on="area_id", right_index=True, how="left")
+    # employment density from areas attributes
+    base["employment_density"] = areas["employment_density"].values
+
+    # Supply
+    base["private_supply"] = private_supply_by_area(areas, parcels)
+    base["public_supply"] = public_supply_by_area(areas, garages_df)
+
+    # Access
+    acc = access_metrics(areas, venues_df)
+    base = pd.concat([base, acc], axis=1)
+
+    # Economic
+    # median garage rate within 600 m of centroid
+    garages = gpd.GeoDataFrame(garages_df.copy(), geometry=gpd.points_from_xy(garages_df["lon"], garages_df["lat"]), crs=4326)
+    garages_l = to_local(garages)
+    centroids = to_local(areas).centroid
+    rates = []
+    for c in centroids:
+        d = garages_l.distance(c)
+        within = garages_l.loc[d <= 600.0, "hourly_rate"]
+        rates.append(float(within.median()) if len(within) else float(garages_df["hourly_rate"].median()))
+    base["garage_rate_median"] = rates
+
+    # Final index on area_id for easy join
+    base = base.set_index("area_id", drop=False)
+    return base
+
+src/forecast.py
+from __future__ import annotations
+import pandas as pd
+import numpy as np
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+
+def build_synthetic_hourly(areas: list[str], days: int = 21, seed: int = 7) -> pd.DataFrame:
+    """
+    Create synthetic hourly demand with weekday commute peaks and weekend events.
+    demand_index ~ baseline + commute_wave + event_spikes + noise
+    """
+    rng = np.random.default_rng(seed)
+    hours = pd.date_range("2025-06-01", periods=24*days, freq="H")
+    rows = []
+    for a in areas:
+        base = rng.uniform(10, 30)
+        series = []
+        for t in hours:
+            hour = t.hour
+            dow = t.dayofweek  # 0=Mon
+            commute = 25*np.exp(-((hour-8)/2.5)**2) + 22*np.exp(-((hour-17)/2.5)**2) if dow < 5 else 6
+            weekend_event = 18 if (dow in [5,6] and hour in [19,20]) else 0
+            noise = rng.normal(0, 3)
+            series.append(max(0, base + commute + weekend_event + noise))
+        rows.append(pd.DataFrame({"timestamp": hours, "area_id": a, "demand_index": series}))
+    return pd.concat(rows, ignore_index=True)
+
+def sarima_forecast(df: pd.DataFrame, area_id: str, steps: int = 24*7) -> pd.DataFrame:
+    """
+    Fit a light SARIMAX per area on synthetic hourlies and forecast next week.
+    """
+    ts = df.loc[df["area_id"] == area_id].set_index("timestamp")["demand_index"].asfreq("H")
+    # A tiny configuration that usually converges fast on synthetic data
+    model = SARIMAX(ts, order=(1,0,1), seasonal_order=(1,1,1,24), enforce_stationarity=False, enforce_invertibility=False)
+    res = model.fit(disp=False)
+    fc = res.get_forecast(steps=steps)
+    out = fc.summary_frame()[["mean", "mean_ci_lower", "mean_ci_upper"]].rename(
+        columns={"mean": "forecast", "mean_ci_lower": "lo", "mean_ci_upper": "hi"}
+    )
+    out["area_id"] = area_id
+    out.index.name = "timestamp"
+    return out.reset_index()
+
+def next_week_peak_index(forecasts: pd.DataFrame) -> pd.DataFrame:
+    """
+    Reduce hourly forecast to one value per area: next-week peak hour average across top 3 hours.
+    """
+    topk = (forecasts
+            .sort_values(["area_id", "forecast"], ascending=[True, False])
+            .groupby("area_id").head(3)
+            .groupby("area_id")["forecast"].mean()
+            .rename("forecast_peak_index"))
+    return topk.reset_index()
+
+src/viz.py
+from __future__ import annotations
+import pandas as pd
+import geopandas as gpd
+import folium
+from folium.features import GeoJsonTooltip
+from .features import to_local
+
+def make_folium_map(areas: gpd.GeoDataFrame, scored: pd.DataFrame, venues: pd.DataFrame, garages: pd.DataFrame,
+                    score_col: str = "Opportunity", outfile: str = "maps/opportunities.html") -> None:
+    g_areas = areas.merge(scored[["area_id", score_col]], on="area_id", how="left")
+    g_areas = g_areas.to_crs(4326)
+
+    center = [g_areas.geometry.centroid.y.mean(), g_areas.geometry.centroid.x.mean()]
+    m = folium.Map(location=center, zoom_start=13, control_scale=True)
+
+    # Choropleth by score
+    gj = folium.GeoJson(
+        g_areas,
+        name="Opportunity",
+        style_function=lambda f: {
+            "fillColor": _color_scale(f["properties"].get(score_col, 0.0)),
+            "color": "black",
+            "weight": 1,
+            "fillOpacity": 0.6,
+        },
+        tooltip=GeoJsonTooltip(
+            fields=["area_id", score_col],
+            aliases=["Area", "Opportunity"],
+            localize=True
+        )
+    )
+    gj.add_to(m)
+
+    # Venues
+    for _, r in venues.iterrows():
+        folium.CircleMarker(
+            location=[r["lat"], r["lon"]],
+            radius=5,
+            popup=f'{r["name"]} ({r["type"]})',
+            fill=True
+        ).add_to(m)
+
+    # Garages
+    for _, r in garages.iterrows():
+        folium.Marker(
+            location=[r["lat"], r["lon"]],
+            tooltip=f'{r["name"]}: ${r["hourly_rate"]}/hr',
+            icon=folium.Icon(color="blue", icon="parking", prefix="fa")
+        ).add_to(m)
+
+    folium.LayerControl().add_to(m)
+    m.save(outfile)
+    print(f"Saved map to {outfile}")
+
+def _color_scale(x: float) -> str:
+    # Simple green-red scale
+    x = 0.0 if x is None else max(0.0, min(1.0, float(x)))
+    r = int(255 * (1 - x))
+    g = int(255 * x)
+    return f"#{r:02x}{g:02x}55"
+
+def build_map_cli():
+    import pandas as pd
+    import geopandas as gpd
+    from .features import assemble_features
+    from .scoring import compute_composites, compute_opportunity
+
+    areas = gpd.read_file("data/boundaries.geojson")
+    parcels = gpd.read_file("data/parcels_sample.geojson")
+    venues = pd.read_csv("data/venues.csv")
+    garages = pd.read_csv("data/parking_prices.csv")
+    traffic = pd.read_csv("data/traffic.csv")
+
+    feats = assemble_features(areas, venues, parcels, garages, traffic)
+    comps = compute_composites(feats)
+    scored = compute_opportunity(comps)
+    make_folium_map(areas, scored.reset_index(), venues, garages, "Opportunity", "maps/opportunities.html")
+
+notebooks/ (minimal, runnable JSON)
+
+These are small to keep the repo light. They call into src/ so you see clean code.
+
+notebooks/01_data_prep.ipynb
+{
+ "cells": [
+  {"cell_type":"markdown","metadata":{},"source":["# 01 - Data prep\nLoad synthetic data, check CRS, quick preview."]},
+  {"cell_type":"code","metadata":{},"execution_count":null,"outputs":[],"source":[
+    "import pandas as pd, geopandas as gpd\n",
+    "areas = gpd.read_file('../data/boundaries.geojson')\n",
+    "parcels = gpd.read_file('../data/parcels_sample.geojson')\n",
+    "venues = pd.read_csv('../data/venues.csv')\n",
+    "garages = pd.read_csv('../data/parking_prices.csv')\n",
+    "traffic = pd.read_csv('../data/traffic.csv')\n",
+    "areas.head(), parcels.head(), venues.head(), garages.head(), traffic.head()"
+  ]},
+  {"cell_type":"code","metadata":{},"execution_count":null,"outputs":[],"source":[
+    "areas.crs, parcels.crs"
+  ]},
+  {"cell_type":"markdown","metadata":{},"source":["Everything is WGS84 going in. We will project to EPSG:26910 later for distances."]}
+ ],
+ "metadata":{"kernelspec":{"display_name":"Python 3","language":"python","name":"python3"},
+             "language_info":{"name":"python","version":"3.11"}},
+ "nbformat":4,"nbformat_minor":5
+}
+
+notebooks/02_geospatial_metrics.ipynb
+{
+ "cells": [
+  {"cell_type":"markdown","metadata":{},"source":["# 02 - Geospatial metrics\nBuild per-area features."]},
+  {"cell_type":"code","metadata":{},"execution_count":null,"outputs":[],"source":[
+    "import pandas as pd, geopandas as gpd\n",
+    "from src.features import assemble_features\n",
+    "areas = gpd.read_file('../data/boundaries.geojson')\n",
+    "parcels = gpd.read_file('../data/parcels_sample.geojson')\n",
+    "venues = pd.read_csv('../data/venues.csv')\n",
+    "garages = pd.read_csv('../data/parking_prices.csv')\n",
+    "traffic = pd.read_csv('../data/traffic.csv')\n",
+    "feats = assemble_features(areas, venues, parcels, garages, traffic)\n",
+    "feats.head()"
+  ]},
+  {"cell_type":"code","metadata":{},"execution_count":null,"outputs":[],"source":[
+    "feats.to_csv('../outputs/features_preview.csv', index=False)\n",
+    "print('Saved ../outputs/features_preview.csv')"
+  ]}
+ ],
+ "metadata":{"kernelspec":{"display_name":"Python 3","language":"python","name":"python3"},
+             "language_info":{"name":"python","version":"3.11"}},
+ "nbformat":4,"nbformat_minor":5
+}
+
+notebooks/03_time_series.ipynb
+{
+ "cells": [
+  {"cell_type":"markdown","metadata":{},"source":["# 03 - Time series\nSynthetic hourly demand and SARIMA forecast."]},
+  {"cell_type":"code","metadata":{},"execution_count":null,"outputs":[],"source":[
+    "import pandas as pd\n",
+    "from src.forecast import build_synthetic_hourly, sarima_forecast, next_week_peak_index\n",
+    "areas = ['A1','A2','B1','B2']\n",
+    "ts = build_synthetic_hourly(areas, days=21)\n",
+    "ts.head()"
+  ]},
+  {"cell_type":"code","metadata":{},"execution_count":null,"outputs":[],"source":[
+    "fc_all = []\n",
+    "for a in areas:\n",
+    "    fc = sarima_forecast(ts, a)\n",
+    "    fc_all.append(fc)\n",
+    "fc = pd.concat(fc_all, ignore_index=True)\n",
+    "peak = next_week_peak_index(fc)\n",
+    "peak"
+  ]},
+  {"cell_type":"code","metadata":{},"execution_count":null,"outputs":[],"source":[
+    "peak.to_csv('../outputs/forecast_peaks.csv', index=False)\n",
+    "print('Saved ../outputs/forecast_peaks.csv')"
+  ]}
+ ],
+ "metadata":{"kernelspec":{"display_name":"Python 3","language":"python","name":"python3"},
+             "language_info":{"name":"python","version":"3.11"}},
+ "nbformat":4,"nbformat_minor":5
+}
+
+notebooks/04_opportunity_index.ipynb
+{
+ "cells": [
+  {"cell_type":"markdown","metadata":{},"source":["# 04 - Opportunity Index\nNormalize, weight, score, rank, and map."]},
+  {"cell_type":"code","metadata":{},"execution_count":null,"outputs":[],"source":[
+    "import pandas as pd, geopandas as gpd\n",
+    "from src.features import assemble_features\n",
+    "from src.scoring import compute_composites, compute_opportunity, rank_areas, preset_weights\n",
+    "from src.viz import make_folium_map\n",
+    "areas = gpd.read_file('../data/boundaries.geojson')\n",
+    "parcels = gpd.read_file('../data/parcels_sample.geojson')\n",
+    "venues = pd.read_csv('../data/venues.csv')\n",
+    "garages = pd.read_csv('../data/parking_prices.csv')\n",
+    "traffic = pd.read_csv('../data/traffic.csv')\n",
+    "feats = assemble_features(areas, venues, parcels, garages, traffic)\n",
+    "comps = compute_composites(feats)\n",
+    "scored = compute_opportunity(comps, weights=preset_weights('balanced'))\n",
+    "top = rank_areas(scored.reset_index(), 'Opportunity', n=10)\n",
+    "top"
+  ]},
+  {"cell_type":"code","metadata":{},"execution_count":null,"outputs":[],"source":[
+    "top.to_csv('../outputs/top_areas.csv', index=False)\n",
+    "print('Saved ../outputs/top_areas.csv')\n",
+    "make_folium_map(areas, scored.reset_index(), venues, garages, 'Opportunity', '../maps/opportunities.html')\n",
+    "print('Map saved to ../maps/opportunities.html')"
+  ]}
+ ],
+ "metadata":{"kernelspec":{"display_name":"Python 3","language":"python","name":"python3"},
+             "language_info":{"name":"python","version":"3.11"}},
+ "nbformat":4,"nbformat_minor":5
+}
+
+data/ synthetic files
+data/boundaries.geojson
+
+Four small grid cells near downtown/SLU. Includes a simple employment_density proxy.
+
+{
+  "type": "FeatureCollection",
+  "name": "boundaries",
+  "crs": {"type":"name","properties":{"name":"EPSG:4326"}},
+  "features": [
+    {
+      "type":"Feature",
+      "properties":{"area_id":"A1","name":"Northwest Cell","employment_density":120.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.345,47.615],[-122.331,47.615],[-122.331,47.625],[-122.345,47.625],[-122.345,47.615]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"area_id":"A2","name":"Northeast Cell","employment_density":150.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.331,47.615],[-122.317,47.615],[-122.317,47.625],[-122.331,47.625],[-122.331,47.615]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"area_id":"B1","name":"Southwest Cell","employment_density":90.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.345,47.605],[-122.331,47.605],[-122.331,47.615],[-122.345,47.615],[-122.345,47.605]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"area_id":"B2","name":"Southeast Cell","employment_density":110.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.331,47.605],[-122.317,47.605],[-122.317,47.615],[-122.331,47.615],[-122.331,47.605]
+      ]]}
+    }
+  ]
+}
+
+data/parcels_sample.geojson
+
+A handful of residential polygons with driveway_area_m2.
+
+{
+  "type": "FeatureCollection",
+  "name": "parcels_sample",
+  "crs": {"type":"name","properties":{"name":"EPSG:4326"}},
+  "features": [
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":45.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.342,47.620],[-122.340,47.620],[-122.340,47.622],[-122.342,47.622],[-122.342,47.620]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":60.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.339,47.618],[-122.337,47.618],[-122.337,47.620],[-122.339,47.620],[-122.339,47.618]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":30.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.328,47.618],[-122.326,47.618],[-122.326,47.620],[-122.328,47.620],[-122.328,47.618]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":80.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.334,47.610],[-122.332,47.610],[-122.332,47.612],[-122.334,47.612],[-122.334,47.610]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":0.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.320,47.610],[-122.318,47.610],[-122.318,47.612],[-122.320,47.612],[-122.320,47.610]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":55.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.324,47.614],[-122.322,47.614],[-122.322,47.616],[-122.324,47.616],[-122.324,47.614]
+      ]]}
+    }
+  ]
+}
+
+data/venues.csv
+
+A few venues and an office cluster. attendance is used for event intensity. Employees acts as a hint you can use later.
+
+venue_id,name,type,lat,lon,attendance,employees
+v1,Climate Pledge Arena,arena,47.6221,-122.3549,15000,0
+v2,Lumen Field,stadium,47.5952,-122.3316,68000,0
+v3,T-Mobile Park,stadium,47.5914,-122.3325,47000,0
+v4,Amazon Spheres,office_cluster,47.6156,-122.3388,3000,25000
+
+data/parking_prices.csv
+
+Garage price and capacity stand in for public parking.
+
+garage_id,name,lat,lon,hourly_rate,capacity
+g1,SLU Garage A,47.6205,-122.3355,5.0,600
+g2,Downtown Garage B,47.6095,-122.3350,7.0,900
+g3,SODO Garage C,47.5900,-122.3330,4.0,500
+
+data/traffic.csv
+
+Tiny hourly traffic index per area for one day. You can extend to multiple days.
+
+area_id,hour,traffic_index
+A1,0,22
+A1,1,18
+A1,2,15
+A1,3,14
+A1,4,16
+A1,5,25
+A1,6,40
+A1,7,58
+A1,8,72
+A1,9,60
+A1,10,48
+A1,11,45
+A1,12,43
+A1,13,44
+A1,14,46
+A1,15,52
+A1,16,60
+A1,17,70
+A1,18,65
+A1,19,50
+A1,20,38
+A1,21,30
+A1,22,26
+A1,23,22
+A2,0,18
+A2,1,16
+A2,2,14
+A2,3,13
+A2,4,15
+A2,5,22
+A2,6,38
+A2,7,55
+A2,8,68
+A2,9,58
+A2,10,46
+A2,11,44
+A2,12,42
+A2,13,43
+A2,14,45
+A2,15,50
+A2,16,58
+A2,17,66
+A2,18,60
+A2,19,48
+A2,20,36
+A2,21,28
+A2,22,24
+A2,23,20
+B1,0,16
+B1,1,14
+B1,2,12
+B1,3,12
+B1,4,13
+B1,5,20
+B1,6,35
+B1,7,50
+B1,8,62
+B1,9,52
+B1,10,42
+B1,11,40
+B1,12,38
+B1,13,39
+B1,14,41
+B1,15,46
+B1,16,54
+B1,17,62
+B1,18,56
+B1,19,44
+B1,20,34
+B1,21,26
+B1,22,22
+B1,23,18
+B2,0,14
+B2,1,12
+B2,2,11
+B2,3,11
+B2,4,12
+B2,5,18
+B2,6,30
+B2,7,44
+B2,8,55
+B2,9,48
+B2,10,40
+B2,11,38
+B2,12,36
+B2,13,37
+B2,14,39
+B2,15,44
+B2,16,52
+B2,17,58
+B2,18,52
+B2,19,40
+B2,20,32
+B2,21,24
+B2,22,20
+B2,23,16
+
+tests/test_scoring.py
+import pandas as pd
+from src.scoring import normalize_series, weighted_sum, compute_opportunity
+
+def test_normalize_series_basic():
+    s = pd.Series([0, 5, 10])
+    n = normalize_series(s)
+    assert float(n.min()) == 0.0
+    assert float(n.max()) == 1.0
+    assert float(n.iloc[1]) == 0.5
+
+def test_normalize_series_constant():
+    s = pd.Series([7, 7, 7])
+    n = normalize_series(s)
+    assert (n == 0.5).all()
+
+def test_weighted_sum():
+    df = pd.DataFrame({"a":[0.0, 1.0], "b":[1.0, 0.0]})
+    w = {"a":0.7, "b":0.3}
+    out = weighted_sum(df, ["a","b"], w)
+    assert list(out.round(2)) == [0.3, 0.7]
+
+def test_compute_opportunity():
+    df = pd.DataFrame({
+        "DemandScore":[0.2,0.8],
+        "SupplyScore":[0.2,0.8],
+        "AccessScore":[0.2,0.8],
+        "EconomicScore":[0.2,0.8]
+    })
+    scored = compute_opportunity(df)
+    assert list(scored["Opportunity"].round(2)) == [0.2, 0.8]

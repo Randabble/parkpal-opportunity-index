@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "name": "boundaries",
+  "crs": {"type":"name","properties":{"name":"EPSG:4326"}},
+  "features": [
+    {
+      "type":"Feature",
+      "properties":{"area_id":"A1","name":"Northwest Cell","employment_density":120.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.345,47.615],[-122.331,47.615],[-122.331,47.625],[-122.345,47.625],[-122.345,47.615]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"area_id":"A2","name":"Northeast Cell","employment_density":150.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.331,47.615],[-122.317,47.615],[-122.317,47.625],[-122.331,47.625],[-122.331,47.615]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"area_id":"B1","name":"Southwest Cell","employment_density":90.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.345,47.605],[-122.331,47.605],[-122.331,47.615],[-122.345,47.615],[-122.345,47.605]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"area_id":"B2","name":"Southeast Cell","employment_density":110.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.331,47.605],[-122.317,47.605],[-122.317,47.615],[-122.331,47.615],[-122.331,47.605]
+      ]]}
+    }
+  ]
+}

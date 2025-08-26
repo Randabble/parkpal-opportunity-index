@@ -1,0 +1,49 @@
+{
+  "type": "FeatureCollection",
+  "name": "parcels_sample",
+  "crs": {"type":"name","properties":{"name":"EPSG:4326"}},
+  "features": [
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":45.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.342,47.620],[-122.340,47.620],[-122.340,47.622],[-122.342,47.622],[-122.342,47.620]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":60.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.339,47.618],[-122.337,47.618],[-122.337,47.620],[-122.339,47.620],[-122.339,47.618]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":30.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.328,47.618],[-122.326,47.618],[-122.326,47.620],[-122.328,47.620],[-122.328,47.618]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":80.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.334,47.610],[-122.332,47.610],[-122.332,47.612],[-122.334,47.612],[-122.334,47.610]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":0.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.320,47.610],[-122.318,47.610],[-122.318,47.612],[-122.320,47.612],[-122.320,47.610]
+      ]]}
+    },
+    {
+      "type":"Feature",
+      "properties":{"driveway_area_m2":55.0},
+      "geometry":{"type":"Polygon","coordinates":[[
+        [-122.324,47.614],[-122.322,47.614],[-122.322,47.616],[-122.324,47.616],[-122.324,47.614]
+      ]]}
+    }
+  ]
+}
